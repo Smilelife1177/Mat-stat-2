@@ -242,7 +242,7 @@ class TabPairCorr(ttk.Frame):
         nb.add(self.tab_heatmap_all, text="  Теплова карта (всі)  ")
         nb.add(self.tab_heatmap_sig, text="  Теплова карта (значущі)  ")
         nb.add(self.tab_table,       text="  Деталі по парах  ")
-        nb.add(self.tab_scatter,     text="  Scatter-матриця  ")
+        nb.add(self.tab_scatter,     text="  Матриця діаграм розкиду  ")
 
         self.pp_all  = PlotPanel(self.tab_heatmap_all)
         self.pp_all.pack(fill='both', expand=True)
