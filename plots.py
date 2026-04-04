@@ -78,43 +78,134 @@ def heatmap_figure(matrix: np.ndarray, cols: list,
 
 
 # ──────────────────────────────────────────────────────────────
-# SCATTER MATRIX
+# SCATTER MATRIX  (стиль посібника)
+# Діагональ       — гістограма
+# Нижній трикутник — scatter plot (чорні крапки)
+# Верхній трикутник — тільки «Corr:» + значення по центру
+# Фон клітинок чергується: білий / світло-сірий
 # ──────────────────────────────────────────────────────────────
 def scatter_matrix_figure(df) -> Figure:
-    import pandas as pd
     cols = list(df.columns)
     p    = len(cols)
-    sz   = max(3.2, p * 1.8)
-    fig  = Figure(figsize=(sz, sz), dpi=100)
-    _style_fig(fig)
 
+    # Розміри: мінімум 2.2 на комірку
+    cell  = max(2.2, min(3.0, 10.0 / p))
+    sz    = cell * p
+    fig   = Figure(figsize=(sz + 0.6, sz + 0.6), dpi=110)
+    fig.patch.set_facecolor(BG)
+
+    # Кольори у стилі додатку (темна тема)
+    COL_DARK  = ACCENT        # гістограма та крапки — синій акцент
+    COL_GRID  = GRID          # сітка
+    COL_BG_W  = PANEL         # основний фон комірки
+    COL_BG_G  = '#141724'     # темніше чергування
+    COL_CORR  = TEXT          # текст «Corr:»
+    COL_SPINE = GRID          # рамка
+
+    # Попередньо обчислюємо всі r
+    R = {}
     for i in range(p):
         for j in range(p):
-            idx = i * p + j + 1
-            ax  = fig.add_subplot(p, p, idx)
-            ax.set_facecolor(PANEL)
-            ax.spines[:].set_color(GRID)
-            ax.tick_params(colors=TEXT, labelsize=6)
+            if i != j:
+                r, _ = stats.pearsonr(df.iloc[:, i], df.iloc[:, j])
+                R[(i, j)] = r
 
+    # Відступи: місце для підписів осей
+    margin_l = 0.07
+    margin_b = 0.07
+    margin_r = 0.02
+    margin_t = 0.06
+    usable_w = 1.0 - margin_l - margin_r
+    usable_h = 1.0 - margin_b - margin_t
+    cell_w   = usable_w / p
+    cell_h   = usable_h / p
+
+    axes = {}
+    for i in range(p):        # рядок (y-ознака)
+        for j in range(p):    # стовпець (x-ознака)
+            # (i=0 — верхній рядок в матриці → найбільший y у фігурі)
+            left   = margin_l + j * cell_w
+            bottom = margin_b + (p - 1 - i) * cell_h
+            ax = fig.add_axes([left, bottom, cell_w, cell_h])
+            axes[(i, j)] = ax
+
+            # Чергування фону: парні комірки білі, непарні сірі
+            bg = COL_BG_W if (i + j) % 2 == 0 else COL_BG_G
+            ax.set_facecolor(bg)
+
+            # Рамка
+            for spine in ax.spines.values():
+                spine.set_edgecolor(COL_SPINE)
+                spine.set_linewidth(0.5)
+
+            # Сітка
+            ax.grid(True, color=COL_GRID, linewidth=0.4, linestyle='-', alpha=0.8)
+            ax.set_axisbelow(True)
+
+            # Підписи осей — тільки по краях
+            ax.tick_params(axis='both', labelsize=6, colors=TEXT,
+                           length=3, width=0.5)
+
+            # Приховуємо підписи всередині матриці
+            if j != 0:
+                ax.tick_params(labelleft=False)
+            if i != p - 1:
+                ax.tick_params(labelbottom=False)
+
+            # ── ДІАГОНАЛЬ: гістограма ──────────────────────────
             if i == j:
-                ax.hist(df.iloc[:, i], bins=14, color=ACCENT,
-                        alpha=0.8, edgecolor=BG, linewidth=0.4)
-                ax.set_title(cols[i], fontsize=8, color=ACCENT, fontweight='bold', pad=3)
-            else:
-                r, _ = stats.pearsonr(df.iloc[:, j], df.iloc[:, i])
-                c    = ACCENT if r >= 0 else ACCENT2
+                data  = df.iloc[:, i].dropna().values
+                M     = optimal_bins(len(data))
+                ax.hist(data, bins=M, color=COL_DARK,
+                        edgecolor='white', linewidth=0.3, alpha=0.85)
+
+                # Назва ознаки зверху комірки
+                ax.set_title(cols[i], fontsize=7, color=ACCENT,
+                             fontweight='bold', pad=3)
+
+            # ── НИЖНІЙ ТРИКУТНИК: scatter ──────────────────────
+            elif i > j:
                 ax.scatter(df.iloc[:, j], df.iloc[:, i],
-                           s=6, alpha=0.45, color=c, linewidths=0)
-                ax.text(0.05, 0.88, f"r={r:.2f}", transform=ax.transAxes,
-                        fontsize=7, color=YELLOW, fontweight='bold')
+                           s=5, color=COL_DARK, alpha=0.6,
+                           linewidths=0, rasterized=True)
 
-            if i == p - 1: ax.set_xlabel(cols[j], fontsize=7, color=TEXT)
-            if j == 0:     ax.set_ylabel(cols[i], fontsize=7, color=TEXT)
-            ax.grid(True, color=GRID, linewidth=0.4, linestyle='--', alpha=0.6)
+            # ── ВЕРХНІЙ ТРИКУТНИК: тільки Corr + число ─────────
+            else:   # i < j
+                r = R[(i, j)]
+                ax.set_xticks([])
+                ax.set_yticks([])
 
-    fig.suptitle("Матриця діаграм розкиду", fontsize=12,
-                 fontweight='bold', color=TEXT, y=1.01)
-    fig.tight_layout()
+                # Розмір шрифту залежить від |r| — крупніше = сильніший зв'язок
+                base_fs = max(8, min(16, 8 + int(abs(r) * 10)))
+
+                ax.text(0.5, 0.58, 'Corr:',
+                        transform=ax.transAxes,
+                        ha='center', va='center',
+                        fontsize=7, color=COL_CORR)
+                ax.text(0.5, 0.38, f'{r:.3f}',
+                        transform=ax.transAxes,
+                        ha='center', va='center',
+                        fontsize=base_fs, color=COL_DARK,
+                        fontweight='bold')
+
+    # Підписи назв ознак по правому краю (вертикально) — як у посібнику
+    for i in range(p):
+        bottom = margin_b + (p - 1 - i) * cell_h
+        fig.text(margin_l + usable_w + 0.005,
+                 bottom + cell_h / 2,
+                 cols[i],
+                 rotation=270, va='center', ha='left',
+                 fontsize=7, color=TEXT, fontweight='bold')
+
+    # Підписи назв ознак по верхньому краю
+    for j in range(p):
+        left = margin_l + j * cell_w
+        fig.text(left + cell_w / 2,
+                 margin_b + usable_h + 0.01,
+                 cols[j],
+                 rotation=0, va='bottom', ha='center',
+                 fontsize=7, color=TEXT, fontweight='bold')
+
     return fig
 
 
