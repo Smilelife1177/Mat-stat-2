@@ -242,7 +242,7 @@ class TabPairCorr(ttk.Frame):
         nb.add(self.tab_heatmap_all, text="  Теплова карта (всі)  ")
         nb.add(self.tab_heatmap_sig, text="  Теплова карта (значущі)  ")
         nb.add(self.tab_table,       text="  Деталі по парах  ")
-        nb.add(self.tab_scatter,     text="  Матриця діаграм розкиду  ")
+        nb.add(self.tab_scatter,     text="  Scatter-матриця  ")
 
         self.pp_all  = PlotPanel(self.tab_heatmap_all)
         self.pp_all.pack(fill='both', expand=True)
@@ -379,9 +379,12 @@ class TabPartial(ttk.Frame):
             DataTable(self.tbl_fr, columns=table_cols,
                       data=res['pairs']).pack(fill='both', expand=True)
 
+        N = len(self.app.df)
+        p = len(res['cols'])
         self.meta_var.set(
-            f"df={res['df_deg']}   t_крит={res['t_crit']}   α={res['alpha']}  "
-            f"  (ДІ — тільки для значущих)")
+            f"Порядок w={res['w']}   df = N-w-2 = {res['df_deg']}   "
+            f"t_крит={res['t_crit']}   α={res['alpha']}   "
+            f"(ДІ через перетворення Фішера, df_ДІ = N-w-3 = {N - res['w'] - 3})")
         self.app.status.ok("Часткові кореляції розраховано")
 
     def _get_R(self):
@@ -463,9 +466,12 @@ class TabMultiple(ttk.Frame):
         # Графік
         self.pp.show(plots.multiple_bar_figure(res['rows']))
 
+        N = len(self.app.df)
+        p = len(self.app.df.columns)
         self.meta_var.set(
-            f"df1={res['df1']}   df2={res['df2']}   "
-            f"F_крит={res['F_crit']}   α={res['alpha']}")
+            f"ν1 = p-1 = {res['df1']}   ν2 = N-p-1 = {res['df2']}   "
+            f"F_крит={res['F_crit']}   α={res['alpha']}   "
+            f"Формула: R²_k = 1 - |R| / |R_kk|")
         self.app.status.ok("Множинні кореляції розраховано")
 
     def _get_R(self):
