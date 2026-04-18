@@ -316,43 +316,62 @@ def histograms_figure(df) -> Figure:
 # PARTIAL CI PLOT
 # ──────────────────────────────────────────────────────────────
 def partial_ci_figure(pairs: list) -> Figure:
-    """Графік часткових кореляцій з довірчими інтервалами (forest plot)."""
-    valid = [p for p in pairs if p['ДІ нижня'] != "—"]
-    if not valid:
-        # Просто barplot
-        valid = pairs
+    """Forest plot для часткових кореляцій з ДІ тільки для значущих"""
+    labels = [p['Пара'] for p in pairs]
+    rvals  = [p['r_part'] for p in pairs]
+    
+    # Визначаємо, чи є ДІ
+    has_ci = []
+    lower  = []
+    upper  = []
+    colors = []
+    
+    for p in pairs:
+        if p['ДІ нижня'] != "—" and p['ДІ верхня'] != "—":
+            has_ci.append(True)
+            lower.append(p['ДІ нижня'])
+            upper.append(p['ДІ верхня'])
+            colors.append(GREEN)          # значущий
+        else:
+            has_ci.append(False)
+            lower.append(None)
+            upper.append(None)
+            colors.append(ACCENT2)        # незначущий — червоний/рожевий
 
-    labels = [p['Пара'] for p in valid]
-    rvals  = [p['r_part'] for p in valid]
-    sigs   = ["✔" in p['Значущий'] for p in valid]
-
-    fig = Figure(figsize=(7, max(3.5, len(labels) * 0.55)), dpi=110)
+    fig = Figure(figsize=(7.5, max(3.8, len(labels) * 0.65)), dpi=110)
     _style_fig(fig)
-    ax  = fig.add_subplot(111)
+    ax = fig.add_subplot(111)
     _style_ax(ax, "Часткові коефіцієнти кореляції (forest plot)",
               "r часткова", "Пара змінних")
 
     y = np.arange(len(labels))
-    for i, (row, sig) in enumerate(zip(valid, sigs)):
-        r   = row['r_part']
-        c   = GREEN if sig else ACCENT2
-        ax.scatter(r, i, color=c, s=60, zorder=5)
-        if row['ДІ нижня'] != "—":
-            ax.hlines(i, row['ДІ нижня'], row['ДІ верхня'],
-                      color=c, linewidth=2.5, alpha=0.6, zorder=4)
 
-    ax.axvline(0, color=TEXT, linewidth=0.8, linestyle='--', alpha=0.5)
+    # Точки
+    for i, (r, col) in enumerate(zip(rvals, colors)):
+        ax.scatter(r, i, color=col, s=70, zorder=5, edgecolors='white', linewidth=0.6)
+
+    # Лінії ДІ тільки для значущих
+    for i in range(len(labels)):
+        if has_ci[i]:
+            ax.hlines(y=i, xmin=lower[i], xmax=upper[i],
+                      color=colors[i], linewidth=3.0, alpha=0.75, zorder=4)
+
+    ax.axvline(0, color=TEXT, linewidth=1.0, linestyle='--', alpha=0.6)
+
     ax.set_yticks(y)
-    ax.set_yticklabels(labels, fontsize=8, color=TEXT)
-    ax.set_xlim(-1.1, 1.1)
+    ax.set_yticklabels(labels, fontsize=9, color=TEXT)
+    ax.set_xlim(-1.05, 1.05)
 
+    # Легенда
     from matplotlib.lines import Line2D
     legend_elements = [
-        Line2D([0], [0], marker='o', color='w', markerfacecolor=GREEN,  markersize=7, label='Значущий'),
-        Line2D([0], [0], marker='o', color='w', markerfacecolor=ACCENT2, markersize=7, label='Незначущий'),
+        Line2D([0], [0], marker='o', color='w', markerfacecolor=GREEN, 
+               markersize=9, label='Значущий (+ ДІ)'),
+        Line2D([0], [0], marker='o', color='w', markerfacecolor=ACCENT2, 
+               markersize=9, label='Незначущий'),
     ]
     ax.legend(handles=legend_elements, facecolor=PANEL, edgecolor=GRID,
-              labelcolor=TEXT, fontsize=8)
+              labelcolor=TEXT, fontsize=9, loc='upper right')
 
     fig.tight_layout()
     return fig
