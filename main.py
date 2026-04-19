@@ -23,6 +23,8 @@ from gui_widgets import (
     PlotPanel, SectionHeader, StatusBar, C
 )
 from tab_theory import TabTheory
+import stats_regression as sr
+import plots_regression as pr
 
 
 # ══════════════════════════════════════════════════════════════
@@ -481,6 +483,116 @@ class TabMultiple(ttk.Frame):
         self.app._pair_corr_res = res
         return res['R']
 
+# ──────────────────────────────────────────────────────────────
+#  ВКЛАДКА 5 — МНОЖИННА ЛІНІЙНА РЕГРЕСІЯ (пункт 3)
+# ──────────────────────────────────────────────────────────────
+import stats_regression as sr
+import plots_regression as pr
+
+class TabRegression(ttk.Frame):
+    def __init__(self, parent, app):
+        super().__init__(parent)
+        self.app = app
+        self._build()
+
+    def _build(self):
+        ctrl = tk.Frame(self, bg=C['bg'], pady=10, padx=16)
+        ctrl.pack(fill='x')
+        tk.Label(ctrl, text="Множинна лінійна регресія (пункт 3)", 
+                 bg=C['bg'], fg=C['accent'], font=('Consolas', 12, 'bold')).pack(side='left')
+
+        # Вибір залежної змінної
+        tk.Label(ctrl, text="  Залежна змінна:", bg=C['bg'], fg=C['text']).pack(side='left', padx=(20, 5))
+        self.dep_var = ttk.Combobox(ctrl, state='readonly', width=12)
+        self.dep_var.pack(side='left')
+
+        ttk.Button(ctrl, text="▶  Побудувати модель", style='Accent.TButton',
+                   command=self._run).pack(side='right')
+
+        ttk.Separator(self).pack(fill='x')
+
+        # Результат
+        self.result_frame = ttk.Frame(self)
+        self.result_frame.pack(fill='both', expand=True, padx=8, pady=8)
+
+    def _run(self):
+        if self.app.df is None:
+            messagebox.showwarning("Увага", "Завантажте дані спочатку")
+            return
+        dep = self.dep_var.get()
+        if not dep:
+            messagebox.showwarning("Увага", "Оберіть залежну змінну")
+            return
+
+        res = sr.multiple_linear_regression(self.app.df, dep, self.app.alpha)
+
+        # Таблиця коефіцієнтів
+        for w in self.result_frame.winfo_children():
+            w.destroy()
+        DataTable(self.result_frame, columns=list(res['coef_table'][0].keys()),
+                  data=res['coef_table']).pack(fill='both', expand=True, pady=4)
+
+        # Метрики моделі
+        info = f"R² = {res['R2']}  |  R²_adj = {res['R2_adj']}  |  F = {res['F_stat']} (критичне {res['F_crit']}) → {'ЗНАЧУЩА' if res['model_sig'] else 'НЕЗНАЧУЩА'}"
+        tk.Label(self.result_frame, text=info, bg=C['panel'], fg=C['green'] if res['model_sig'] else C['accent2'],
+                 font=('Consolas', 10, 'bold')).pack(pady=4)
+
+        # Толерантні межі для залишкової дисперсії
+        tk.Label(self.result_frame, text=f"Довірчий інтервал для σ²: [{res['sigma2_ci_lo']}; {res['sigma2_ci_hi']}]",
+                 bg=C['panel'], fg=C['yellow']).pack()
+
+        # Графіки
+        fig_diag = pr.regression_diagnostic_figure(res)
+        PlotPanel(self.result_frame).show(fig_diag)
+
+        self.app.status.ok(f"Регресія для {dep} побудована (R² = {res['R2']})")
+
+
+# ──────────────────────────────────────────────────────────────
+#  ВКЛАДКА 6 — ВІЗУАЛІЗАЦІЯ (пункт 4)
+# ──────────────────────────────────────────────────────────────
+class TabVisualization(ttk.Frame):
+    def __init__(self, parent, app):
+        super().__init__(parent)
+        self.app = app
+        self._build()
+
+    def _build(self):
+        ctrl = tk.Frame(self, bg=C['bg'], pady=10, padx=16)
+        ctrl.pack(fill='x')
+        tk.Label(ctrl, text="Візуалізація багатовимірних даних (пункт 4)", 
+                 bg=C['bg'], fg=C['accent'], font=('Consolas', 12, 'bold')).pack(side='left')
+        ttk.Button(ctrl, text="▶  Показати всі графіки", style='Accent.TButton',
+                   command=self._run).pack(side='right')
+
+        ttk.Separator(self).pack(fill='x')
+
+        paned = ttk.PanedWindow(self, orient='horizontal')
+        paned.pack(fill='both', expand=True, padx=8, pady=8)
+
+        # Ліворуч — паралельні координати
+        left = ttk.Frame(paned)
+        SectionHeader(left, "Паралельні координати").pack(fill='x', pady=4)
+        self.pc_panel = PlotPanel(left)
+        self.pc_panel.pack(fill='both', expand=True)
+
+        # Праворуч — бульбашкова
+        right = ttk.Frame(paned)
+        SectionHeader(right, "Бульбашкова діаграма (розмір = X3)").pack(fill='x', pady=4)
+        self.bubble_panel = PlotPanel(right)
+        self.bubble_panel.pack(fill='both', expand=True)
+
+        paned.add(left, weight=1)
+        paned.add(right, weight=1)
+
+    def _run(self):
+        if self.app.df is None:
+            messagebox.showwarning("Увага", "Завантажте дані")
+            return
+        self.pc_panel.show(pr.parallel_coordinates_figure(self.app.df))
+        self.bubble_panel.show(pr.bubble_chart_figure(self.app.df))
+        self.app.status.ok("Візуалізація побудована")
+
 
 # ══════════════════════════════════════════════════════════════
 #  ГОЛОВНЕ ВІКНО
@@ -526,11 +638,14 @@ class App(tk.Tk):
             ("  🔗  Парні кореляції  ", TabPairCorr),
             ("  ⚙️  Часткові кореляції  ", TabPartial),
             ("  🔢  Множинні кореляції  ", TabMultiple),
+            ("  📐  Множинна регресія  ", TabRegression),      # ← новий
+            ("  📊  Візуалізація  ", TabVisualization),       # ← новий
             ("  📖  Теорія  ",         TabTheory),
         ]
         for label, Cls in tab_defs:
             tab = Cls(self.notebook, self)
             self.notebook.add(tab, text=label)
+
 
         # ── Статус-бар ──────────────────────────────────────────
         self.status = StatusBar(self)
