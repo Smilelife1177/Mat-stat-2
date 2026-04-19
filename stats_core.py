@@ -167,32 +167,33 @@ def partial_correlations(df: pd.DataFrame, R: np.ndarray,
 
     pairs = []
     for i in range(p):
-        for j in range(i + 1, p):
-            r   = PR[i, j]
-            t_s = r * np.sqrt(max(df_t, 1)) / np.sqrt(max(1 - r**2, 1e-15))
-            pv  = 2 * (1 - stats.t.cdf(abs(t_s), df=max(df_t, 1)))
-            sig = pv < alpha
+        for j in range(p):
+            if i != j:                     # ← Змінено: всі пари, крім діагоналі
+                r   = PR[i, j]
+                t_s = r * np.sqrt(max(df_t, 1)) / np.sqrt(max(1 - r**2, 1e-15))
+                pv  = 2 * (1 - stats.t.cdf(abs(t_s), df=max(df_t, 1)))
+                sig = pv < alpha
 
-            # ДІ — формула посібника (розд. 4.3)
-            ci_lo = ci_hi = float('nan')
-            if sig and abs(r) < 1.0 - 1e-9:
-                df_ci  = max(N - w - 3, 1)
-                z      = 0.5 * np.log((1 + r) / (1 - r))   # arctanh(r)
-                u_crit = stats.norm.ppf(1 - alpha / 2)
-                delta  = u_crit / np.sqrt(df_ci)
-                v1, v2 = z - delta, z + delta
-                ci_lo  = (np.exp(2 * v1) - 1) / (np.exp(2 * v1) + 1)
-                ci_hi  = (np.exp(2 * v2) - 1) / (np.exp(2 * v2) + 1)
+                # ДІ через перетворення Фішера
+                ci_lo = ci_hi = "—"
+                if sig and abs(r) < 1.0 - 1e-9:
+                    df_ci  = max(N - w - 3, 1)
+                    z      = 0.5 * np.log((1 + r) / (1 - r))
+                    u_crit = stats.norm.ppf(1 - alpha / 2)
+                    delta  = u_crit / np.sqrt(df_ci)
+                    v1, v2 = z - delta, z + delta
+                    ci_lo  = round((np.exp(2 * v1) - 1) / (np.exp(2 * v1) + 1), 5)
+                    ci_hi  = round((np.exp(2 * v2) - 1) / (np.exp(2 * v2) + 1), 5)
 
-            pairs.append({
-                'Пара':       f"{cols[i]} — {cols[j]}",
-                'r_part':     round(r, 5),
-                't-статист.': round(t_s, 4),
-                'p-value':    round(pv, 5),
-                'Значущий':   "✔ Так" if sig else "✘ Ні",
-                'ДІ нижня':   round(ci_lo, 5) if not np.isnan(ci_lo) else "—",
-                'ДІ верхня':  round(ci_hi, 5) if not np.isnan(ci_hi) else "—",
-            })
+                pairs.append({
+                    'Пара':       f"{cols[i]} — {cols[j]}",
+                    'r_part':     round(r, 5),
+                    't-статист.': round(t_s, 4),
+                    'p-value':    round(pv, 5),
+                    'Значущий':   "✔ Так" if sig else "✘ Ні",
+                    'ДІ нижня':   ci_lo,
+                    'ДІ верхня':  ci_hi,
+                })
 
     return dict(PR=PR, pairs=pairs, cols=cols, w=w,
                 df_deg=df_t, t_crit=round(t_crit, 4), alpha=alpha)
