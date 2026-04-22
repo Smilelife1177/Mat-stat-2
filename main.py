@@ -563,6 +563,10 @@ class TabRegression(ttk.Frame):
 
         self.app.status.ok(f"Регресія для {dep} побудована (R² = {res['R2']})")
 
+        # Графік прогнозованих значень з ДІ
+        fig_pred = pr.regression_prediction_ci_figure(res)
+        PlotPanel(self.result_frame).show(fig_pred)
+
 
 # ──────────────────────────────────────────────────────────────
 #  ВКЛАДКА 6 — ВІЗУАЛІЗАЦІЯ (пункт 4)

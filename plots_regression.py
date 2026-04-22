@@ -68,3 +68,25 @@ def heatmap_data_figure(df: pd.DataFrame) -> Figure:
     
     fig.tight_layout()
     return fig
+
+def regression_prediction_ci_figure(res: dict) -> Figure:
+    """Графік: прогнозовані значення з довірчими інтервалами"""
+    fig = Figure(figsize=(10, 5), dpi=110)
+    _style_fig(fig)
+    ax = fig.add_subplot(111)
+    
+    x = np.arange(len(res['y']))
+    ax.scatter(x, res['y'], s=20, color=ACCENT, alpha=0.7, label='Фактичні y')
+    ax.plot(x, res['y_hat'], color=ACCENT2, linewidth=1.5, label='Прогнозовані ŷ')
+    ax.fill_between(x, res['y_pred_ci_lower'], res['y_pred_ci_upper'], 
+                     color=ACCENT, alpha=0.2, label=f"ДІ ({int((1-res['alpha'])*100)}%)")
+    
+    ax.set_xlabel('Спостереження', color=TEXT)
+    ax.set_ylabel('Значення y', color=TEXT)
+    ax.set_title(f"Прогнозовані значення для {res['dep_col']} з ДІ", 
+                 color=TEXT, fontsize=11, fontweight='bold')
+    ax.set_facecolor(PANEL)
+    ax.legend(facecolor=PANEL, edgecolor=GRID, labelcolor=TEXT)
+    
+    fig.tight_layout()
+    return fig

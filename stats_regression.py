@@ -59,6 +59,12 @@ def multiple_linear_regression(df: pd.DataFrame, dep_col: str, alpha: float = 0.
     sigma2_ci_lo = (n - k) * MSE / chi2_hi
     sigma2_ci_hi = (n - k) * MSE / chi2_lo
 
+    # Довірчі інтервали для прогнозованих значень ŷ
+    var_pred = np.sum((X ** 2) @ np.diag(np.diag(XtX_inv)), axis=1) * MSE
+    se_pred = np.sqrt(var_pred)
+    y_pred_ci_lower = y_hat - t_crit * se_pred
+    y_pred_ci_upper = y_hat + t_crit * se_pred
+
     # Діагностична таблиця
     coef_table = []
     names = ['b0 (вільний член)'] + [f'b{i}' for i in range(1, k)]
@@ -91,5 +97,8 @@ def multiple_linear_regression(df: pd.DataFrame, dep_col: str, alpha: float = 0.
         'predictors': list(df.drop(columns=[dep_col]).columns),
         'n': n,
         'k': k,
+        'y_pred_ci_lower': y_pred_ci_lower,
+        'y_pred_ci_upper': y_pred_ci_upper,
+        'se_pred': se_pred,
         'alpha': alpha
     }
