@@ -577,35 +577,39 @@ class TabVisualization(ttk.Frame):
         ctrl = tk.Frame(self, bg=C['bg'], pady=10, padx=16)
         ctrl.pack(fill='x')
         tk.Label(ctrl, text="Візуалізація багатовимірних даних (пункт 4)", 
-                 bg=C['bg'], fg=C['accent'], font=('Consolas', 12, 'bold')).pack(side='left')
+                bg=C['bg'], fg=C['accent'], font=('Consolas', 12, 'bold')).pack(side='left')
         ttk.Button(ctrl, text="▶  Показати всі графіки", style='Accent.TButton',
-                   command=self._run).pack(side='right')
+                command=self._run).pack(side='right')
 
         ttk.Separator(self).pack(fill='x')
 
-        paned = ttk.PanedWindow(self, orient='horizontal')
-        paned.pack(fill='both', expand=True, padx=8, pady=8)
-
-        # Ліворуч — паралельні координати
-        left = ttk.Frame(paned)
-        SectionHeader(left, "Паралельні координати").pack(fill='x', pady=4)
-        self.pc_panel = PlotPanel(left)
+        # Notebook для трьох графіків
+        nb = ttk.Notebook(self)
+        nb.pack(fill='both', expand=True, padx=8, pady=8)
+        
+        self.tab_pc = ttk.Frame(nb)
+        self.tab_heat = ttk.Frame(nb)
+        self.tab_bubble = ttk.Frame(nb)
+        
+        nb.add(self.tab_pc, text="  Паралельні координати  ")
+        nb.add(self.tab_heat, text="  Теплова карта  ")
+        nb.add(self.tab_bubble, text="  Бульбашкова діаграма  ")
+        
+        self.pc_panel = PlotPanel(self.tab_pc)
         self.pc_panel.pack(fill='both', expand=True)
-
-        # Праворуч — бульбашкова
-        right = ttk.Frame(paned)
-        SectionHeader(right, "Бульбашкова діаграма (розмір = X3)").pack(fill='x', pady=4)
-        self.bubble_panel = PlotPanel(right)
+        
+        self.heat_panel = PlotPanel(self.tab_heat)
+        self.heat_panel.pack(fill='both', expand=True)
+        
+        self.bubble_panel = PlotPanel(self.tab_bubble)
         self.bubble_panel.pack(fill='both', expand=True)
-
-        paned.add(left, weight=1)
-        paned.add(right, weight=1)
 
     def _run(self):
         if self.app.df is None:
             messagebox.showwarning("Увага", "Завантажте дані")
             return
         self.pc_panel.show(pr.parallel_coordinates_figure(self.app.df))
+        self.heat_panel.show(pr.heatmap_data_figure(self.app.df))  # ← НОВА ЛІНІЯ
         self.bubble_panel.show(pr.bubble_chart_figure(self.app.df))
         self.app.status.ok("Візуалізація побудована")
 

@@ -5,6 +5,11 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+
+def normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Нормує дані на діапазон [0, 1]"""
+    return (df - df.min()) / (df.max() - df.min())
+
 def multiple_linear_regression(df: pd.DataFrame, dep_col: str, alpha: float = 0.05) -> dict:
     """Повна множинна лінійна регресія за вимогами викладача"""
     y = df[dep_col].values

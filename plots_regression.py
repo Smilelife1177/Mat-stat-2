@@ -44,3 +44,27 @@ def bubble_chart_figure(df: pd.DataFrame) -> Figure:
     plt.colorbar(scatter, ax=ax, label=df.columns[2])
     fig.tight_layout()
     return fig
+
+def heatmap_data_figure(df: pd.DataFrame) -> Figure:
+    """Теплова карта спостережень × ознаки (нормовані значення)"""
+    from matplotlib.colors import Normalize
+    from stats_regression import normalize_dataframe  # імпортуй з plots або з stats_regression
+    
+    df_norm = normalize_dataframe(df)
+    
+    fig = Figure(figsize=(10, 6), dpi=110)
+    _style_fig(fig)
+    ax = fig.add_subplot(111)
+    
+    im = ax.imshow(df_norm.T, aspect='auto', cmap='YlGn', interpolation='nearest')
+    ax.set_xlabel('Спостереження', color=TEXT)
+    ax.set_ylabel('Ознаки', color=TEXT)
+    ax.set_title('Теплова карта даних (нормовані значення 0–1)', color=TEXT, fontsize=11, fontweight='bold')
+    ax.set_yticks(range(len(df.columns)))
+    ax.set_yticklabels(df.columns, color=TEXT, fontsize=9)
+    
+    cbar = plt.colorbar(im, ax=ax)
+    cbar.set_label('Нормоване значення', color=TEXT)
+    
+    fig.tight_layout()
+    return fig
