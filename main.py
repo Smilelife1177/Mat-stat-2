@@ -117,6 +117,13 @@ class TabLoad(ttk.Frame):
         self.app.df    = df
         self.app.alpha = alpha
         self._show_preview(df)
+        
+        # Оновити Combobox у вкладці регресії
+        for tab in self.app.notebook.tabs():
+            widget = self.app.notebook.nametowidget(tab)
+            if isinstance(widget, TabRegression):
+                widget.update_columns(df)
+        
         self.app.status.ok(
             f"Завантажено: {df.shape[0]} спостережень × {df.shape[1]} ознак  |  "
             f"Файл: {os.path.basename(path)}")
@@ -514,6 +521,15 @@ class TabRegression(ttk.Frame):
         # Результат
         self.result_frame = ttk.Frame(self)
         self.result_frame.pack(fill='both', expand=True, padx=8, pady=8)
+
+    def update_columns(self, df):
+        """Оновити список залежних змінних з даних"""
+        if df is not None:
+            self.dep_var['values'] = list(df.columns)
+            if len(df.columns) > 0:
+                self.dep_var.current(0)  # вибрати першу колонку за замовчуванням
+        else:
+            self.dep_var['values'] = []
 
     def _run(self):
         if self.app.df is None:
