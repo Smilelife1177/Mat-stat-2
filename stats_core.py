@@ -134,6 +134,11 @@ def _partial_r_recursive(R_mat: np.ndarray, i: int, j: int,
     return (r_ij - r_id * r_jd) / denom
 
 
+# Перетворення Фішера — 転換ь на шкалу кореляцій
+def fisher_inv(z):
+    return (np.exp(2*z) - 1) / (np.exp(2*z) + 1)
+
+
 def partial_correlations(df: pd.DataFrame, R: np.ndarray,
                           alpha: float = ALPHA) -> dict:
     """
@@ -185,6 +190,10 @@ def partial_correlations(df: pd.DataFrame, R: np.ndarray,
                     ci_lo  = round((np.exp(2 * v1) - 1) / (np.exp(2 * v1) + 1), 5)
                     ci_hi  = round((np.exp(2 * v2) - 1) / (np.exp(2 * v2) + 1), 5)
 
+                    # Застосуй до меж
+                    r_ci_lower_fisher = fisher_inv(ci_lo)
+                    r_ci_upper_fisher = fisher_inv(ci_hi)   
+
                 pairs.append({
                     'Пара':       f"{cols[i]} — {cols[j]}",
                     'r_part':     round(r, 5),
@@ -193,6 +202,8 @@ def partial_correlations(df: pd.DataFrame, R: np.ndarray,
                     'Значущий':   "✔ Так" if sig else "✘ Ні",
                     'ДІ нижня':   ci_lo,
                     'ДІ верхня':  ci_hi,
+                    'r_ДІ_нижня (Фішер)': round(r_ci_lower_fisher, 5) if not np.isnan(r_ci_lower_fisher) else "—",
+                    'r_ДІ_верхня (Фішер)': round(r_ci_upper_fisher, 5) if not np.isnan(r_ci_upper_fisher) else "—",
                 })
 
     return dict(PR=PR, pairs=pairs, cols=cols, w=w,
