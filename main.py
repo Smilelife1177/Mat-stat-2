@@ -522,6 +522,15 @@ class TabRegression(ttk.Frame):
         self.result_frame = ttk.Frame(self)
         self.result_frame.pack(fill='both', expand=True, padx=8, pady=8)
 
+        # self.diag_panel = PlotPanel(self.result_frame)
+
+        # Діагностична панель
+        SectionHeader(self.result_frame, "  Діагностична діаграма  ", accent=True).pack(
+            fill='x', padx=4, pady=(8, 2))
+        self.diag_panel = PlotPanel(self.result_frame)
+        self.diag_panel.pack(fill='both', expand=True, padx=4, pady=4)
+
+
     def update_columns(self, df):
         """Оновити список залежних змінних з даних"""
         if df is not None:
@@ -542,30 +551,31 @@ class TabRegression(ttk.Frame):
 
         res = sr.multiple_linear_regression(self.app.df, dep, self.app.alpha)
 
-        # Таблиця коефіцієнтів
+        # Очисти старе вмісто
         for w in self.result_frame.winfo_children():
             w.destroy()
+        
+        # Таблиця коефіцієнтів
         DataTable(self.result_frame, columns=list(res['coef_table'][0].keys()),
-                  data=res['coef_table']).pack(fill='both', expand=True, pady=4)
+                data=res['coef_table']).pack(fill='both', expand=True, pady=4)
 
         # Метрики моделі
         info = f"R² = {res['R2']}  |  R²_adj = {res['R2_adj']}  |  F = {res['F_stat']} (критичне {res['F_crit']}) → {'ЗНАЧУЩА' if res['model_sig'] else 'НЕЗНАЧУЩА'}"
         tk.Label(self.result_frame, text=info, bg=C['panel'], fg=C['green'] if res['model_sig'] else C['accent2'],
-                 font=('Consolas', 10, 'bold')).pack(pady=4)
+                font=('Consolas', 10, 'bold')).pack(pady=4)
 
-        # Толерантні межі для залишкової дисперсії
+        # Толерантні межи для залишкової дисперсії
         tk.Label(self.result_frame, text=f"Довірчий інтервал для σ²: [{res['sigma2_ci_lo']}; {res['sigma2_ci_hi']}]",
-                 bg=C['panel'], fg=C['yellow']).pack()
+                bg=C['panel'], fg=C['yellow']).pack()
 
-        # Графіки
-        fig_diag = pr.regression_diagnostic_figure(res)
-        PlotPanel(self.result_frame).show(fig_diag)
+        # Діагностична діаграма — нова панель кожний раз
+        SectionHeader(self.result_frame, "  Діагностична діаграма  ", accent=True).pack(
+            fill='x', padx=4, pady=(8, 2))
+        diag_panel = PlotPanel(self.result_frame)
+        diag_panel.pack(fill='both', expand=True, padx=4, pady=4)
+        diag_panel.show(pr.regression_diagnostic_figure(res))
 
         self.app.status.ok(f"Регресія для {dep} побудована (R² = {res['R2']})")
-
-        # Графік прогнозованих значень з ДІ
-        fig_pred = pr.regression_prediction_ci_figure(res)
-        PlotPanel(self.result_frame).show(fig_pred)
 
 
 # ──────────────────────────────────────────────────────────────
