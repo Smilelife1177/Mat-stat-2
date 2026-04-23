@@ -100,5 +100,6 @@ def multiple_linear_regression(df: pd.DataFrame, dep_col: str, alpha: float = 0.
         'y_pred_ci_lower': y_pred_ci_lower,
         'y_pred_ci_upper': y_pred_ci_upper,
         'se_pred': se_pred,
+        'X_predictors': X[:, 1:],
         'alpha': alpha
     }

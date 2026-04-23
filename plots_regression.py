@@ -8,15 +8,49 @@ import pandas as pd
 from plots import _style_fig, _style_ax, BG, PANEL, TEXT, GRID, ACCENT, ACCENT2
 
 def regression_diagnostic_figure(res: dict) -> Figure:
-    fig = Figure(figsize=(10, 4), dpi=110)
+    fig = Figure(figsize=(12, 8), dpi=110)
     _style_fig(fig)
-    ax = fig.add_subplot(111)
-    _style_ax(ax, "Діагностична діаграма (залишки vs прогнозовані значення)",
-              "Прогнозовані значення ŷ", "Залишки e")
-
-    ax.scatter(res['y_hat'], res['residuals'], s=15, color=ACCENT, alpha=0.7)
-    ax.axhline(0, color=ACCENT2, linestyle='--', lw=1)
-    ax.set_facecolor(PANEL)
+    
+    # 4 підграфіки (2x2)
+    ax1 = fig.add_subplot(2, 2, 1)  # ε vs ŷ (перший вид)
+    ax2 = fig.add_subplot(2, 2, 2)  # ε vs ŷ (другий вид)
+    ax3 = fig.add_subplot(2, 2, 3)  # ε vs X₁
+    ax4 = fig.add_subplot(2, 2, 4)  # ε vs X₂
+    
+    # Стилізуй кожну вісь
+    _style_ax(ax1, "ε vs ŷ (a)", "ŷ", "ε")
+    _style_ax(ax2, "ε vs ŷ (б)", "ŷ", "ε")
+    _style_ax(ax3, "ε vs X₁ (в)", "X₁", "ε")
+    _style_ax(ax4, "ε vs X₂ (г)", "X₂", "ε")
+    
+    # Дані
+    residuals = res['residuals']
+    y_hat = res['y_hat']
+    X = res.get('X_predictors')  # потрібно додати в stats_regression.py!
+    
+    # График 1: ε vs ŷ
+    ax1.scatter(y_hat, residuals, s=20, color=ACCENT, alpha=0.7)
+    ax1.axhline(0, color=ACCENT2, linestyle='--', lw=1)
+    ax1.set_facecolor(PANEL)
+    
+    # График 2: ε vs ŷ (нормовані залишки)
+    residuals_std = residuals / np.std(residuals)
+    ax2.scatter(y_hat, residuals_std, s=20, color=ACCENT, alpha=0.7)
+    ax2.axhline(0, color=ACCENT2, linestyle='--', lw=1)
+    ax2.set_facecolor(PANEL)
+    
+    # График 3: ε vs X₁
+    if X is not None and X.shape[1] > 0:
+        ax3.scatter(X[:, 0], residuals, s=20, color=ACCENT, alpha=0.7)
+        ax3.axhline(0, color=ACCENT2, linestyle='--', lw=1)
+    ax3.set_facecolor(PANEL)
+    
+    # График 4: ε vs X₂
+    if X is not None and X.shape[1] > 1:
+        ax4.scatter(X[:, 1], residuals, s=20, color=ACCENT, alpha=0.7)
+        ax4.axhline(0, color=ACCENT2, linestyle='--', lw=1)
+    ax4.set_facecolor(PANEL)
+    
     fig.tight_layout()
     return fig
 
