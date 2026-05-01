@@ -22,7 +22,7 @@ from gui_widgets import (
     apply_theme, MetricCard, DataTable,
     PlotPanel, SectionHeader, StatusBar, C
 )
-from tab_theory import TabTheory
+# from tab_theory import TabTheory
 import stats_regression as sr
 import plots_regression as pr
 
@@ -674,7 +674,7 @@ class App(tk.Tk):
             ("  🔢  Множинні кореляції  ", TabMultiple),
             ("  📐  Множинна регресія  ", TabRegression),      # ← новий
             ("  📊  Візуалізація  ", TabVisualization),       # ← новий
-            ("  📖  Теорія  ",         TabTheory),
+            # ("  📖  Теорія  ",         TabTheory),
         ]
         for label, Cls in tab_defs:
             tab = Cls(self.notebook, self)
