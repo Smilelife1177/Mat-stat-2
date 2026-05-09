@@ -103,6 +103,122 @@ def heatmap_data_figure(df: pd.DataFrame) -> Figure:
     fig.tight_layout()
     return fig
 
+def glyph_star_figure(df: pd.DataFrame, max_obs: int = 50) -> Figure:
+    """
+    Зіркові гліфи (Star Glyphs / Star Plots).
+
+    Кожне спостереження зображується як зірка: кожний промінь
+    відповідає одній ознаці, довжина променя = нормоване значення [0,1].
+    Суміжні кінці промінів з'єднуються — утворюється багатокутник.
+
+    Алгоритм:
+      1. Нормуємо кожну ознаку на [0,1]:  v_j = (x_j - min_j)/(max_j - min_j)
+      2. Кути промінів рівномірно розподілені: θ_j = 2π·j/p
+      3. Координата кінця j-го променя:  (v_j·cos θ_j, v_j·sin θ_j)
+      4. Полігон замикається на перший промінь
+    """
+    from matplotlib.patches import Polygon
+    from matplotlib.collections import PatchCollection
+
+    # Нормування [0, 1]
+    df_n = df.copy()
+    for col in df_n.columns:
+        lo, hi = df_n[col].min(), df_n[col].max()
+        df_n[col] = (df_n[col] - lo) / (hi - lo) if hi > lo else 0.0
+
+    n_obs  = min(len(df_n), max_obs)
+    p      = len(df_n.columns)
+    cols   = list(df_n.columns)
+
+    # Кути промінів
+    angles = np.linspace(0, 2 * np.pi, p, endpoint=False)
+    # Замикаємо полігон
+    angles_c = np.append(angles, angles[0])
+
+    # Розмір сітки
+    ncols_g = max(5, int(np.ceil(np.sqrt(n_obs * 1.6))))
+    nrows_g = int(np.ceil(n_obs / ncols_g))
+
+    cell   = 1.6
+    fig    = Figure(figsize=(ncols_g * cell + 1.2,
+                             nrows_g * cell + 1.0), dpi=110)
+    _style_fig(fig)
+    fig.suptitle(
+        f"Зіркові гліфи — {n_obs} спостережень × {p} ознак\n"
+        f"Кожний промінь = нормована ознака [0–1]",
+        fontsize=10, fontweight='bold', color=TEXT, y=1.01)
+
+    # Колірна палітра для промінів
+    spoke_colors = plt.cm.tab20(np.linspace(0, 1, p))
+
+    for idx in range(n_obs):
+        row_i = idx // ncols_g
+        col_i = idx %  ncols_g
+
+        ax = fig.add_axes([
+            0.04 + col_i / ncols_g * (1 - 0.08),
+            0.04 + (nrows_g - 1 - row_i) / nrows_g * (1 - 0.10),
+            1.0 / ncols_g * 0.88,
+            1.0 / nrows_g * 0.82,
+        ])
+        ax.set_facecolor(PANEL)
+        ax.set_aspect('equal')
+        ax.set_xlim(-1.25, 1.25)
+        ax.set_ylim(-1.25, 1.25)
+        ax.axis('off')
+
+        values = df_n.iloc[idx].values
+
+        # Кола фону (0.25, 0.5, 0.75, 1.0)
+        for r in [0.25, 0.5, 0.75, 1.0]:
+            circle = plt.Circle((0, 0), r,
+                                 color=GRID, fill=False,
+                                 linewidth=0.4, alpha=0.5)
+            ax.add_patch(circle)
+
+        # Осьові лінії (промені-сітка)
+        for a in angles:
+            ax.plot([0, np.cos(a)], [0, np.sin(a)],
+                    color=GRID, lw=0.5, alpha=0.6)
+
+        # Полігон гліфа
+        xs = np.append(values * np.cos(angles), values[0] * np.cos(angles[0]))
+        ys = np.append(values * np.sin(angles), values[0] * np.sin(angles[0]))
+        ax.fill(xs, ys, color=ACCENT, alpha=0.30)
+        ax.plot(xs, ys, color=ACCENT, lw=1.0, alpha=0.85)
+
+        # Кольорові крапки на кінцях промінів
+        for j in range(p):
+            ax.scatter(values[j] * np.cos(angles[j]),
+                       values[j] * np.sin(angles[j]),
+                       s=12, color=spoke_colors[j], zorder=5,
+                       edgecolors='none')
+
+        # Номер спостереження
+        ax.text(0, -1.18, f"#{idx+1}",
+                ha='center', va='top',
+                fontsize=6, color=TEXT,
+                fontfamily='Consolas')
+
+    # Легенда ознак (один раз, під фігурою)
+    legend_ax = fig.add_axes([0.0, 0.0, 1.0, 0.04])
+    legend_ax.axis('off')
+    legend_ax.set_facecolor(BG)
+    x_step = 1.0 / p
+    for j, (col_name, clr) in enumerate(zip(cols, spoke_colors)):
+        legend_ax.scatter(x_step * j + x_step * 0.15, 0.5,
+                          s=30, color=clr,
+                          transform=legend_ax.transAxes,
+                          clip_on=False)
+        legend_ax.text(x_step * j + x_step * 0.22, 0.5,
+                       col_name, color=TEXT,
+                       fontsize=7, va='center',
+                       transform=legend_ax.transAxes,
+                       clip_on=False)
+
+    return fig
+
+
 def regression_prediction_ci_figure(res: dict) -> Figure:
     """Графік: прогнозовані значення з довірчими інтервалами"""
     fig = Figure(figsize=(10, 5), dpi=110)
