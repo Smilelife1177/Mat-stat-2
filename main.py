@@ -246,18 +246,14 @@ class TabPairCorr(ttk.Frame):
         self.tab_heatmap_all = ttk.Frame(nb)
         self.tab_heatmap_sig = ttk.Frame(nb)
         self.tab_table       = ttk.Frame(nb)
-        self.tab_scatter     = ttk.Frame(nb)
         nb.add(self.tab_heatmap_all, text="  Теплова карта (всі)  ")
         nb.add(self.tab_heatmap_sig, text="  Теплова карта (значущі)  ")
         nb.add(self.tab_table,       text="  Деталі по парах  ")
-        nb.add(self.tab_scatter,     text="  Scatter-матриця  ")
 
         self.pp_all  = PlotPanel(self.tab_heatmap_all)
         self.pp_all.pack(fill='both', expand=True)
         self.pp_sig  = PlotPanel(self.tab_heatmap_sig)
         self.pp_sig.pack(fill='both', expand=True)
-        self.pp_scat = PlotPanel(self.tab_scatter)
-        self.pp_scat.pack(fill='both', expand=True)
 
         self.table_fr = ttk.Frame(self.tab_table)
         self.table_fr.pack(fill='both', expand=True, padx=6, pady=6)
@@ -286,7 +282,6 @@ class TabPairCorr(ttk.Frame):
         self.pp_sig.show(plots.heatmap_figure(
             res['R_sig'], cols,
             f"Матриця ЗНАЧУЩИХ парних коефіцієнтів кореляції  (|r| > {res['r_crit']})"))
-        self.pp_scat.show(plots.scatter_matrix_figure(self.app.df))
 
         # Таблиця
         for w in self.table_fr.winfo_children():
@@ -602,11 +597,13 @@ class TabVisualization(ttk.Frame):
 
         self.tab_pc     = ttk.Frame(nb)
         self.tab_heat   = ttk.Frame(nb)
+        self.tab_scat   = ttk.Frame(nb)
         self.tab_bubble = ttk.Frame(nb)
         self.tab_glyph  = ttk.Frame(nb)
 
         nb.add(self.tab_pc,     text="  Паралельні координати  ")
         nb.add(self.tab_heat,   text="  Теплова карта  ")
+        nb.add(self.tab_scat,   text="  Scatter-матриця  ")
         nb.add(self.tab_bubble, text="  Бульбашкова діаграма  ")
         nb.add(self.tab_glyph,  text="  Зіркові гліфи  ")
 
@@ -615,6 +612,9 @@ class TabVisualization(ttk.Frame):
 
         self.heat_panel   = PlotPanel(self.tab_heat)
         self.heat_panel.pack(fill='both', expand=True)
+
+        self.scat_panel   = PlotPanel(self.tab_scat)
+        self.scat_panel.pack(fill='both', expand=True)
 
         self.bubble_panel = PlotPanel(self.tab_bubble)
         self.bubble_panel.pack(fill='both', expand=True)
@@ -643,6 +643,7 @@ class TabVisualization(ttk.Frame):
             return
         self.pc_panel.show(pr.parallel_coordinates_figure(self.app.df))
         self.heat_panel.show(pr.heatmap_data_figure(self.app.df))
+        self.scat_panel.show(plots.scatter_matrix_figure(self.app.df))
         self.bubble_panel.show(pr.bubble_chart_figure(self.app.df))
 
         # Гліфи: будуємо окремо, щоб не гальмувати загальний запуск
