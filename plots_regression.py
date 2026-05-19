@@ -219,6 +219,63 @@ def glyph_star_figure(df: pd.DataFrame, max_obs: int = 50) -> Figure:
     return fig
 
 
+def spatial_glyph_3d_figure(df: pd.DataFrame) -> Figure:
+    """
+    3D Гліф: Просторова модель (поверхня) за трьома ознаками.
+    Використовує перші дві ознаки як X, Y та третю як Z (інтенсивність).
+    """
+    if df.shape[1] < 3:
+        fig = Figure(figsize=(7, 5), dpi=110)
+        _style_fig(fig)
+        ax = fig.add_subplot(111)
+        ax.text(0.5, 0.5, "Для 3D-поверхні потрібно\nпринаймні 3 ознаки", 
+                ha='center', va='center', color=TEXT, fontfamily='Consolas')
+        ax.axis('off')
+        return fig
+
+    fig = Figure(figsize=(9, 7), dpi=110)
+    _style_fig(fig)
+    
+    # Створюємо 3D-осі
+    from mpl_toolkits.mplot3d import Axes3D
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_facecolor(BG)
+
+    x = df.iloc[:, 0].values
+    y = df.iloc[:, 1].values
+    z = df.iloc[:, 2].values
+
+    # Побудова поверхні (Tri-Surface works well for irregular data)
+    surf = ax.plot_trisurf(x, y, z, cmap='viridis', edgecolor='none', alpha=0.7, antialiased=True)
+    
+    # Додаємо точки вимірювання (як на скріншоті)
+    ax.scatter(x, y, z, color=ACCENT2, s=15, alpha=0.8, edgecolors='white', linewidth=0.5)
+
+    # Налаштування осей
+    ax.set_xlabel(df.columns[0], color=TEXT, fontsize=8, labelpad=5)
+    ax.set_ylabel(df.columns[1], color=TEXT, fontsize=8, labelpad=5)
+    ax.set_zlabel(df.columns[2], color=TEXT, fontsize=8, labelpad=5)
+    ax.set_title(f"3D Гліф: Просторова модель {df.columns[2]}", 
+                 color=TEXT, fontsize=11, fontweight='bold', pad=15)
+
+    # Стилізація "панелей" 3D
+    for axis in [ax.xaxis, ax.yaxis, ax.zaxis]:
+        axis.set_pane_color(PANEL)
+        axis.label.set_color(TEXT)
+        axis.get_ticklines()
+    
+    ax.tick_params(axis='x', colors=TEXT, labelsize=7)
+    ax.tick_params(axis='y', colors=TEXT, labelsize=7)
+    ax.tick_params(axis='z', colors=TEXT, labelsize=7)
+
+    # Колірна шкала
+    cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10, pad=0.1)
+    cbar.ax.tick_params(colors=TEXT, labelsize=7)
+    cbar.outline.set_edgecolor(GRID)
+
+    return fig
+
+
 def regression_prediction_ci_figure(res: dict) -> Figure:
     """Графік: прогнозовані значення з довірчими інтервалами"""
     fig = Figure(figsize=(10, 5), dpi=110)

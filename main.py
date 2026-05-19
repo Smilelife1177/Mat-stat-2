@@ -599,12 +599,14 @@ class TabVisualization(ttk.Frame):
         self.tab_heat   = ttk.Frame(nb)
         self.tab_scat   = ttk.Frame(nb)
         self.tab_bubble = ttk.Frame(nb)
+        self.tab_surf   = ttk.Frame(nb)
         self.tab_glyph  = ttk.Frame(nb)
 
         nb.add(self.tab_pc,     text="  Паралельні координати  ")
         nb.add(self.tab_heat,   text="  Теплова карта  ")
         nb.add(self.tab_scat,   text="  Scatter-матриця  ")
         nb.add(self.tab_bubble, text="  Бульбашкова діаграма  ")
+        nb.add(self.tab_surf,   text="  3D Гліф (Поверхня)  ")
         nb.add(self.tab_glyph,  text="  Зіркові гліфи  ")
 
         self.pc_panel     = PlotPanel(self.tab_pc)
@@ -618,6 +620,9 @@ class TabVisualization(ttk.Frame):
 
         self.bubble_panel = PlotPanel(self.tab_bubble)
         self.bubble_panel.pack(fill='both', expand=True)
+
+        self.surf_panel   = PlotPanel(self.tab_surf)
+        self.surf_panel.pack(fill='both', expand=True)
 
         # ── Вкладка гліфів: управління + панель ───────────────
         glyph_ctrl = tk.Frame(self.tab_glyph, bg=C['bg'], pady=6, padx=10)
@@ -645,6 +650,7 @@ class TabVisualization(ttk.Frame):
         self.heat_panel.show(pr.heatmap_data_figure(self.app.df))
         self.scat_panel.show(plots.scatter_matrix_figure(self.app.df))
         self.bubble_panel.show(pr.bubble_chart_figure(self.app.df))
+        self.surf_panel.show(pr.spatial_glyph_3d_figure(self.app.df))
 
         # Гліфи: будуємо окремо, щоб не гальмувати загальний запуск
         try:
