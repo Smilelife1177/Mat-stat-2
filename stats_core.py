@@ -181,6 +181,8 @@ def partial_correlations(df: pd.DataFrame, R: np.ndarray,
 
                 # ДІ через перетворення Фішера
                 ci_lo = ci_hi = "—"
+                r_ci_lower_fisher = r_ci_upper_fisher = np.nan
+
                 if sig and abs(r) < 1.0 - 1e-9:
                     df_ci  = max(N - w - 3, 1)
                     z      = 0.5 * np.log((1 + r) / (1 - r))
