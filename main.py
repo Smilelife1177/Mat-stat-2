@@ -24,6 +24,7 @@ from gui_widgets import (
 )
 import stats_regression as sr
 import plots_regression as pr
+from tab_pca import TabPCA
 
 
 # ══════════════════════════════════════════════════════════════
@@ -120,10 +121,10 @@ class TabLoad(ttk.Frame):
         self.app.alpha = alpha
         self._show_preview(df)
         
-        # Оновити Combobox у вкладці регресії
+        # Оновити списки ознак у вкладках регресії та МГК
         for tab in self.app.notebook.tabs():
             widget = self.app.notebook.nametowidget(tab)
-            if isinstance(widget, TabRegression):
+            if isinstance(widget, (TabRegression, TabPCA)):
                 widget.update_columns(df)
         
         self.app.status.ok(
@@ -730,6 +731,7 @@ class App(tk.Tk):
             ("  🔢  Множинні кореляції  ", TabMultiple),
             ("  📐  Множинна регресія  ", TabRegression),      # ← новий
             ("  📊  Візуалізація  ", TabVisualization),       # ← новий
+            ("  🧬  МГК (PCA)  ", TabPCA),
         ]
         for label, Cls in tab_defs:
             tab = Cls(self.notebook, self)
