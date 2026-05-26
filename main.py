@@ -75,6 +75,9 @@ class TabLoad(ttk.Frame):
                                 width=6, state='readonly')
         alpha_cb.pack(side='left', padx=(6, 0))
 
+        ttk.Button(params, text="🧹  Видалити аномалії",
+                   command=self._remove_anomalies).pack(side='right', padx=2)
+
         # Превью даних
         ttk.Separator(self).pack(fill='x', pady=4)
         SectionHeader(self, "  Попередній перегляд даних").pack(
@@ -127,6 +130,25 @@ class TabLoad(ttk.Frame):
             f"Завантажено: {df.shape[0]} спостережень × {df.shape[1]} ознак  |  "
             f"Файл: {os.path.basename(path)}")
         self.app.notebook.select(1)   # перейти до наступної вкладки
+
+    def _remove_anomalies(self):
+        if self.app.df is None:
+            messagebox.showwarning("Увага", "Спочатку завантажте дані")
+            return
+        
+        # Використовуємо Z-score метод
+        df_clean, n_removed = sc.remove_outliers(self.app.df, method='zscore')
+        
+        if n_removed == 0:
+            messagebox.showinfo("Результат", "Аномалій (за методом Z-score > 3.0) не виявлено")
+            return
+            
+        if messagebox.askyesno("Видалення аномалій", 
+                               f"Виявлено {n_removed} аномальних спостережень.\nВидалити їх?"):
+            self.app.df = df_clean
+            self._show_preview(df_clean)
+            self.app.status.ok(f"Видалено {n_removed} аномалій. Залишилось: {len(df_clean)}")
+            messagebox.showinfo("Успіх", f"Видалено {n_removed} аномальних спостережень.")
 
     def _show_preview(self, df):
         # Оновити таблицю превью

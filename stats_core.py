@@ -263,3 +263,29 @@ def multiple_correlations(df: pd.DataFrame, R: np.ndarray,
 
     return dict(rows=rows, df1=nu1, df2=nu2,
                 F_crit=round(F_crit, 4), alpha=alpha)
+
+
+# ──────────────────────────────────────────────────────────────
+# 5. ВИДАЛЕННЯ АНОМАЛІЙ (Outliers)
+# ──────────────────────────────────────────────────────────────
+def remove_outliers(df: pd.DataFrame, method: str = 'zscore', threshold: float = 3.0) -> tuple:
+    """
+    Видаляє аномалії з DataFrame.
+    Повертає (очищений_df, кількість_видалених)
+    """
+    n_orig = len(df)
+    
+    if method == 'zscore':
+        # Метод Z-score: |(x - mean)/std| > threshold
+        z_scores = np.abs(stats.zscore(df))
+        # Видаляємо рядки, де хоча б одна ознака є аномальною
+        filtered_df = df[(z_scores < threshold).all(axis=1)]
+    else:
+        # Метод IQR (Interquartile Range)
+        Q1 = df.quantile(0.25)
+        Q3 = df.quantile(0.75)
+        IQR = Q3 - Q1
+        filtered_df = df[~((df < (Q1 - 1.5 * IQR)) | (df > (Q3 + 1.5 * IQR))).any(axis=1)]
+        
+    n_removed = n_orig - len(filtered_df)
+    return filtered_df, n_removed
