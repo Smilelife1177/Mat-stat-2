@@ -52,7 +52,7 @@ class TabLoad(ttk.Frame):
         file_row.pack(fill='x')
         tk.Label(file_row, text="Файл даних:", bg=C['bg'],
                  fg=C['text'], font=('Consolas', 9)).pack(side='left')
-        self.path_var = tk.StringVar(value="norm3n.txt")
+        self.path_var = tk.StringVar(value="normal_4_features_500.txt")
         ent = tk.Entry(file_row, textvariable=self.path_var,
                        bg=C['panel2'], fg=C['text'],
                        insertbackground=C['accent'],
