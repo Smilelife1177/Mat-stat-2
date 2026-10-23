@@ -1,0 +1,377 @@
+"""
+plots.py — Всі графіки для Лаб. 5 (matplotlib, вбудовуються в tkinter)
+"""
+
+import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.figure import Figure
+
+
+# ── Кольорова схема (темна, академічна) ──────────────────────
+BG      = "#0f1117"
+PANEL   = "#1a1d27"
+ACCENT  = "#4f8ef7"
+ACCENT2 = "#e05c7a"
+TEXT    = "#d6dae8"
+GRID    = "#252836"
+GREEN   = "#4ecb88"
+YELLOW  = "#f5c542"
+
+# Власна дивергентна colormap
+_cmap_colors = [(0.87, 0.22, 0.38), (0.12, 0.13, 0.20), (0.31, 0.56, 0.97)]
+CORR_CMAP = LinearSegmentedColormap.from_list("corr", _cmap_colors, N=256)
+
+
+def _style_fig(fig):
+    fig.patch.set_facecolor(BG)
+
+
+def _style_ax(ax, title="", xlabel="", ylabel=""):
+    ax.set_facecolor(PANEL)
+    ax.tick_params(colors=TEXT, labelsize=8)
+    ax.spines[:].set_color(GRID)
+    ax.xaxis.label.set_color(TEXT)
+    ax.yaxis.label.set_color(TEXT)
+    ax.title.set_color(TEXT)
+    ax.grid(True, color=GRID, linewidth=0.6, linestyle='--', alpha=0.7)
+    if title:  ax.set_title(title, fontsize=10, fontweight='bold', pad=8)
+    if xlabel: ax.set_xlabel(xlabel, fontsize=8)
+    if ylabel: ax.set_ylabel(ylabel, fontsize=8)
+
+
+# ──────────────────────────────────────────────────────────────
+# HEATMAP (парні / часткові)
+# ──────────────────────────────────────────────────────────────
+def heatmap_figure(matrix: np.ndarray, cols: list,
+                   title: str = "Матриця кореляцій",
+                   annot_size: int = 9) -> Figure:
+    p   = len(cols)
+    fig = Figure(figsize=(max(5, p * 1.1), max(4, p * 1.0)), dpi=110)
+    _style_fig(fig)
+    ax  = fig.add_subplot(111)
+    ax.set_facecolor(PANEL)
+
+    im = ax.imshow(matrix, cmap=CORR_CMAP, vmin=-1, vmax=1, aspect='auto')
+    cbar = fig.colorbar(im, ax=ax, shrink=0.85, pad=0.02)
+    cbar.ax.tick_params(colors=TEXT, labelsize=7)
+    cbar.outline.set_edgecolor(GRID)
+
+    ax.set_xticks(range(p))
+    ax.set_xticklabels(cols, rotation=40, ha='right', fontsize=8, color=TEXT)
+    ax.set_yticks(range(p))
+    ax.set_yticklabels(cols, fontsize=8, color=TEXT)
+    ax.spines[:].set_color(GRID)
+
+    for i in range(p):
+        for j in range(p):
+            val = matrix[i, j]
+            color = "white" if abs(val) > 0.45 else TEXT
+            ax.text(j, i, f"{val:.2f}", ha='center', va='center',
+                    fontsize=annot_size, color=color, fontweight='bold')
+
+    ax.set_title(title, fontsize=11, fontweight='bold', color=TEXT, pad=10)
+    fig.tight_layout()
+    return fig
+
+
+# ──────────────────────────────────────────────────────────────
+# SCATTER MATRIX  (стиль посібника)
+# Діагональ       — гістограма
+# Нижній трикутник — scatter plot (чорні крапки)
+# Верхній трикутник — тільки «Corr:» + значення по центру
+# Фон клітинок чергується: білий / світло-сірий
+# ──────────────────────────────────────────────────────────────
+def scatter_matrix_figure(df) -> Figure:
+    cols = list(df.columns)
+    p    = len(cols)
+
+    # Розміри: мінімум 2.2 на комірку
+    cell  = max(2.2, min(3.0, 10.0 / p))
+    sz    = cell * p
+    fig   = Figure(figsize=(sz + 0.6, sz + 0.6), dpi=110)
+    fig.patch.set_facecolor(BG)
+
+    # Кольори у стилі додатку (темна тема)
+    COL_DARK  = ACCENT        # гістограма та крапки — синій акцент
+    COL_GRID  = GRID          # сітка
+    COL_BG_W  = PANEL         # основний фон комірки
+    COL_BG_G  = '#141724'     # темніше чергування
+    COL_CORR  = TEXT          # текст «Corr:»
+    COL_SPINE = GRID          # рамка
+
+    # Попередньо обчислюємо всі r
+    R = {}
+    for i in range(p):
+        for j in range(p):
+            if i != j:
+                r, _ = stats.pearsonr(df.iloc[:, i], df.iloc[:, j])
+                R[(i, j)] = r
+
+    # Відступи: місце для підписів осей
+    margin_l = 0.07
+    margin_b = 0.07
+    margin_r = 0.02
+    margin_t = 0.06
+    usable_w = 1.0 - margin_l - margin_r
+    usable_h = 1.0 - margin_b - margin_t
+    cell_w   = usable_w / p
+    cell_h   = usable_h / p
+
+    axes = {}
+    for i in range(p):        # рядок (y-ознака)
+        for j in range(p):    # стовпець (x-ознака)
+            # (i=0 — верхній рядок в матриці → найбільший y у фігурі)
+            left   = margin_l + j * cell_w
+            bottom = margin_b + (p - 1 - i) * cell_h
+            ax = fig.add_axes([left, bottom, cell_w, cell_h])
+            axes[(i, j)] = ax
+
+            # Чергування фону: парні комірки білі, непарні сірі
+            bg = COL_BG_W if (i + j) % 2 == 0 else COL_BG_G
+            ax.set_facecolor(bg)
+
+            # Рамка
+            for spine in ax.spines.values():
+                spine.set_edgecolor(COL_SPINE)
+                spine.set_linewidth(0.5)
+
+            # Сітка
+            ax.grid(True, color=COL_GRID, linewidth=0.4, linestyle='-', alpha=0.8)
+            ax.set_axisbelow(True)
+
+            # Підписи осей — тільки по краях
+            ax.tick_params(axis='both', labelsize=6, colors=TEXT,
+                           length=3, width=0.5)
+
+            # Приховуємо підписи всередині матриці
+            if j != 0:
+                ax.tick_params(labelleft=False)
+            if i != p - 1:
+                ax.tick_params(labelbottom=False)
+
+            # ── ДІАГОНАЛЬ: гістограма ──────────────────────────
+            if i == j:
+                data  = df.iloc[:, i].dropna().values
+                M     = optimal_bins(len(data))
+                ax.hist(data, bins=M, color=COL_DARK,
+                        edgecolor='white', linewidth=0.3, alpha=0.85)
+
+                # Назва ознаки зверху комірки
+                ax.set_title(cols[i], fontsize=7, color=ACCENT,
+                             fontweight='bold', pad=3)
+
+            # ── НИЖНІЙ ТРИКУТНИК: scatter ──────────────────────
+            elif i > j:
+                ax.scatter(df.iloc[:, j], df.iloc[:, i],
+                           s=5, color=COL_DARK, alpha=0.6,
+                           linewidths=0, rasterized=True)
+
+            # ── ВЕРХНІЙ ТРИКУТНИК: тільки Corr + число ─────────
+            else:   # i < j
+                r = R[(i, j)]
+                ax.set_xticks([])
+                ax.set_yticks([])
+
+                # Розмір шрифту залежить від |r| — крупніше = сильніший зв'язок
+                base_fs = max(8, min(16, 8 + int(abs(r) * 10)))
+
+                ax.text(0.5, 0.58, 'Corr:',
+                        transform=ax.transAxes,
+                        ha='center', va='center',
+                        fontsize=7, color=COL_CORR)
+                ax.text(0.5, 0.38, f'{r:.3f}',
+                        transform=ax.transAxes,
+                        ha='center', va='center',
+                        fontsize=base_fs, color=COL_DARK,
+                        fontweight='bold')
+
+    # Підписи назв ознак по правому краю (вертикально) — як у посібнику
+    for i in range(p):
+        bottom = margin_b + (p - 1 - i) * cell_h
+        fig.text(margin_l + usable_w + 0.005,
+                 bottom + cell_h / 2,
+                 cols[i],
+                 rotation=270, va='center', ha='left',
+                 fontsize=7, color=TEXT, fontweight='bold')
+
+    # Підписи назв ознак по верхньому краю
+    for j in range(p):
+        left = margin_l + j * cell_w
+        fig.text(left + cell_w / 2,
+                 margin_b + usable_h + 0.01,
+                 cols[j],
+                 rotation=0, va='bottom', ha='center',
+                 fontsize=7, color=TEXT, fontweight='bold')
+
+    return fig
+
+
+# ──────────────────────────────────────────────────────────────
+# MULTIPLE CORRELATION BAR
+# ──────────────────────────────────────────────────────────────
+def multiple_bar_figure(rows: list) -> Figure:
+    cols   = [r['Змінна'] for r in rows]
+    Rmults = [r['R_mult'] for r in rows]
+    R2s    = [r['R²']     for r in rows]
+    sigs   = [r['Значущий'] for r in rows]
+
+    fig = Figure(figsize=(max(6, len(cols) * 1.0), 4.5), dpi=110)
+    _style_fig(fig)
+    ax  = fig.add_subplot(111)
+    _style_ax(ax, "Множинні коефіцієнти кореляції", "Змінна", "Значення")
+
+    x = np.arange(len(cols))
+    w = 0.35
+    bars1 = ax.bar(x - w/2, Rmults, w, color=ACCENT,   alpha=0.85,
+                   label='R_mult', edgecolor=BG, linewidth=0.5)
+    bars2 = ax.bar(x + w/2, R2s,    w, color=ACCENT2,  alpha=0.85,
+                   label='R²',     edgecolor=BG, linewidth=0.5)
+
+    ax.axhline(0.5, color=GREEN, linestyle='--', linewidth=1, alpha=0.7, label='R=0.5')
+    ax.set_xticks(x)
+    ax.set_xticklabels(cols, color=TEXT, fontsize=9)
+    ax.set_ylim(0, 1.12)
+    ax.legend(facecolor=PANEL, edgecolor=GRID, labelcolor=TEXT, fontsize=8)
+
+    for bar, val, sig in zip(bars1, Rmults, sigs):
+        c = GREEN if "Так" in sig else ACCENT2
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                f"{val:.3f}", ha='center', fontsize=8, color=c, fontweight='bold')
+
+    fig.tight_layout()
+    return fig
+
+
+# ──────────────────────────────────────────────────────────────
+# ОПТИМАЛЬНА КІЛЬКІСТЬ КЛАСІВ (формула з посібника)
+# ──────────────────────────────────────────────────────────────
+def optimal_bins(n: int) -> int:
+    """
+    Формула з посібника:
+      При N < 100:   M = floor(sqrt(N)),   якщо непарне
+                     M = floor(sqrt(N))-1, якщо парне
+      При N >= 100:  M = floor(cbrt(N)),   якщо непарне
+                     M = floor(cbrt(N))-1, якщо парне
+    """
+    if n < 100:
+        m = int(np.floor(np.sqrt(n)))
+    else:
+        m = int(np.floor(np.cbrt(n)))   # кубічний корінь = N^(1/3)
+
+    # Якщо парне — зменшуємо на 1, щоб зробити непарним (бажано непарне)
+    if m % 2 == 0:
+        m -= 1
+
+    return max(m, 3)   # мінімум 3 класи
+
+
+# ──────────────────────────────────────────────────────────────
+# HISTOGRAMS (первинний аналіз)
+# ──────────────────────────────────────────────────────────────
+def histograms_figure(df) -> Figure:
+    cols  = list(df.columns)
+    p     = len(cols)
+    ncols = min(p, 3)
+    nrows = (p + ncols - 1) // ncols
+    fig   = Figure(figsize=(ncols * 3.5, nrows * 3.0), dpi=100)
+    _style_fig(fig)
+
+    for idx, col in enumerate(cols):
+        ax   = fig.add_subplot(nrows, ncols, idx + 1)
+        data = df[col].dropna().values
+        n    = len(data)
+        M    = optimal_bins(n)
+
+        _style_ax(ax, title=col, xlabel="Значення", ylabel="Частота")
+
+        ax.hist(data, bins=M, color=ACCENT, alpha=0.8,
+                edgecolor=BG, linewidth=0.4)
+
+        # Підпис кількості класів (формула посібника)
+        root_sym = 'sqrt(N)' if n < 100 else 'cbrt(N)'
+        root_val = float(np.sqrt(n)) if n < 100 else float(n ** (1/3))
+        formula  = 'M=%d  (%s=%.2f, N=%d)' % (M, root_sym, root_val, n)
+        ax.text(0.97, 0.97, formula, transform=ax.transAxes,
+                fontsize=6.5, color=YELLOW, ha='right', va='top',
+                bbox=dict(facecolor=PANEL, edgecolor=GRID, boxstyle='round,pad=0.3'))
+
+        # Крива нормального розподілу
+        mu, sigma = data.mean(), data.std()
+        x = np.linspace(data.min(), data.max(), 300)
+        pdf = stats.norm.pdf(x, mu, sigma)
+        h   = (data.max() - data.min()) / M        # ширина класу
+        count_scale = n * h
+        ax.plot(x, pdf * count_scale, color=ACCENT2, linewidth=1.5, label='Норм. розп.')
+        ax.legend(facecolor=PANEL, edgecolor=GRID, labelcolor=TEXT, fontsize=7)
+
+    fig.suptitle("Гістограми ознак", fontsize=12, fontweight='bold', color=TEXT)
+    fig.tight_layout()
+    return fig
+
+
+# ──────────────────────────────────────────────────────────────
+# PARTIAL CI PLOT
+# ──────────────────────────────────────────────────────────────
+def partial_ci_figure(pairs: list) -> Figure:
+    """Forest plot для часткових кореляцій з ДІ тільки для значущих"""
+    labels = [p['Пара'] for p in pairs]
+    rvals  = [p['r_part'] for p in pairs]
+    
+    # Визначаємо, чи є ДІ
+    has_ci = []
+    lower  = []
+    upper  = []
+    colors = []
+    
+    for p in pairs:
+        if p['ДІ нижня'] != "—" and p['ДІ верхня'] != "—":
+            has_ci.append(True)
+            lower.append(p['ДІ нижня'])
+            upper.append(p['ДІ верхня'])
+            colors.append(GREEN)          # значущий
+        else:
+            has_ci.append(False)
+            lower.append(None)
+            upper.append(None)
+            colors.append(ACCENT2)        # незначущий — червоний/рожевий
+
+    fig = Figure(figsize=(7.5, max(3.8, len(labels) * 0.65)), dpi=110)
+    _style_fig(fig)
+    ax = fig.add_subplot(111)
+    _style_ax(ax, "Часткові коефіцієнти кореляції (forest plot)",
+              "r часткова", "Пара змінних")
+
+    y = np.arange(len(labels))
+
+    # Точки
+    for i, (r, col) in enumerate(zip(rvals, colors)):
+        ax.scatter(r, i, color=col, s=70, zorder=5, edgecolors='white', linewidth=0.6)
+
+    # Лінії ДІ тільки для значущих
+    for i in range(len(labels)):
+        if has_ci[i]:
+            ax.hlines(y=i, xmin=lower[i], xmax=upper[i],
+                      color=colors[i], linewidth=3.0, alpha=0.75, zorder=4)
+
+    ax.axvline(0, color=TEXT, linewidth=1.0, linestyle='--', alpha=0.6)
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9, color=TEXT)
+    ax.set_xlim(-1.05, 1.05)
+
+    # Легенда
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='w', markerfacecolor=GREEN, 
+               markersize=9, label='Значущий (+ ДІ)'),
+        Line2D([0], [0], marker='o', color='w', markerfacecolor=ACCENT2, 
+               markersize=9, label='Незначущий'),
+    ]
+    ax.legend(handles=legend_elements, facecolor=PANEL, edgecolor=GRID,
+              labelcolor=TEXT, fontsize=9, loc='upper right')
+
+    fig.tight_layout()
+    return fig
