@@ -32,8 +32,8 @@ class TabLab2(ttk.Frame):
                  insertbackground=C['accent'], relief='flat').pack(side='right', padx=6)
         tk.Label(top, text="Дані:", bg=C['bg'], fg=C['text']).pack(side='right')
 
-        opts = tk.Frame(self, bg=C['bg'], padx=16, pady=(0, 8))
-        opts.pack(fill='x')
+        opts = tk.Frame(self, bg=C['bg'])
+        opts.pack(fill='x', padx=16, pady=(0, 8))
         tk.Label(opts, text="Кількість факторів (0 = критерій Кайзера):", bg=C['bg'], fg=C['subtext']).pack(side='left')
         self.k_var = tk.StringVar(value="0")
         ttk.Spinbox(opts, from_=0, to=20, textvariable=self.k_var, width=5).pack(side='left', padx=6)
