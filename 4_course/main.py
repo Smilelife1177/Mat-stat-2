@@ -25,6 +25,7 @@ from gui_widgets import (
 import stats_regression as sr
 import plots_regression as pr
 from tab_pca import TabPCA
+from tab_lab2 import TabLab2
 
 
 # ══════════════════════════════════════════════════════════════
@@ -130,7 +131,8 @@ class TabLoad(ttk.Frame):
         self.app.status.ok(
             f"Завантажено: {df.shape[0]} спостережень × {df.shape[1]} ознак  |  "
             f"Файл: {os.path.basename(path)}")
-        self.app.notebook.select(1)   # перейти до наступної вкладки
+        # Вкладка «Дані» зараз друга: переходимо до наступної після неї.
+        self.app.notebook.select(2)
 
     def _remove_anomalies(self):
         if self.app.df is None:
@@ -724,6 +726,7 @@ class App(tk.Tk):
         self.notebook.pack(fill='both', expand=True, padx=0, pady=0)
 
         tab_defs = [
+            ("  🧪  Лаб-2 (МГФ)  ", TabLab2),
             ("  📂  Дані  ",          TabLoad),
             ("  📈  Первинний аналіз  ", TabPrimary),
             ("  🔗  Парні кореляції  ", TabPairCorr),
