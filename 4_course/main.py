@@ -26,6 +26,7 @@ import stats_regression as sr
 import plots_regression as pr
 from tab_pca import TabPCA
 from tab_lab2 import TabLab2
+from tab_lab3 import TabLab3
 
 
 # ══════════════════════════════════════════════════════════════
@@ -727,6 +728,7 @@ class App(tk.Tk):
 
         tab_defs = [
             ("  🧪  Лаб-2 (МГФ)  ", TabLab2),
+            ("  📐  Лаб-3 (Різноманіття)  ", TabLab3),
             ("  📂  Дані  ",          TabLoad),
             ("  📈  Первинний аналіз  ", TabPrimary),
             ("  🔗  Парні кореляції  ", TabPairCorr),

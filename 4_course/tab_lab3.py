@@ -44,7 +44,7 @@ VAR6 = {
     'theta2_deg': 75.0,
     'mu': np.array([15.0, 5.0, 20.0]),
 }
-DEFAULT_CSV = 'lab3_variant6_data.csv'
+DEFAULT_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lab3_variant6_data.csv')
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -465,6 +465,8 @@ class TabLab3(ttk.Frame):
         self.manifold = None
         self._fig_manifold = None
         self._build()
+        if os.path.exists(DEFAULT_CSV):
+            self.after(150, self._run)
 
     # ──────────────────────────────────────────────────────────
     def _build(self):
