@@ -132,8 +132,8 @@ class TabLoad(ttk.Frame):
         self.app.status.ok(
             f"Завантажено: {df.shape[0]} спостережень × {df.shape[1]} ознак  |  "
             f"Файл: {os.path.basename(path)}")
-        # Вкладка «Дані» зараз друга: переходимо до наступної після неї.
-        self.app.notebook.select(2)
+        # Залишаємось на вкладці «Дані» для перегляду завантажених даних
+        self.app.notebook.select(self)
 
     def _remove_anomalies(self):
         if self.app.df is None:
@@ -727,16 +727,16 @@ class App(tk.Tk):
         self.notebook.pack(fill='both', expand=True, padx=0, pady=0)
 
         tab_defs = [
-            ("  🧪  Лаб-2 (МГФ)  ", TabLab2),
-            ("  📐  Лаб-3 (Різноманіття)  ", TabLab3),
             ("  📂  Дані  ",          TabLoad),
+            ("  🧬  МГК (PCA)  ",     TabPCA),
+            ("  🧪  Лаб-2 (МГФ)  ",   TabLab2),
+            ("  📐  Лаб-3 (Різноманіття)  ", TabLab3),
             ("  📈  Первинний аналіз  ", TabPrimary),
             ("  🔗  Парні кореляції  ", TabPairCorr),
             ("  ⚙️  Часткові кореляції  ", TabPartial),
             ("  🔢  Множинні кореляції  ", TabMultiple),
             ("  📐  Множинна регресія  ", TabRegression),      # ← новий
             ("  📊  Візуалізація  ", TabVisualization),       # ← новий
-            ("  🧬  МГК (PCA)  ", TabPCA),
         ]
         for label, Cls in tab_defs:
             tab = Cls(self.notebook, self)
